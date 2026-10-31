@@ -124,28 +124,52 @@ def build_tex(p, c):
               "% Original V2 theme and color definitions retained below.\n" +
               theme_definitions + source[last:])
 
-    # V2 originally positions rows for three databases and three exclusion reasons.
-    # Give additional rows vertical space while retaining each node's design.
-    extra_ident = max(0, len(entries) - 5)
-    extra_reasons = max(0, len(reasons) - 5)
-    extra_ident_cm = extra_ident * 0.58
-    extra_reasons_cm = extra_reasons * 0.58
-    if extra_ident_cm:
-        for name, base in (("phaseScreen", -5.10), ("screen", -5.10),
-                           ("screenout", -5.10), ("sought", -7.05),
-                           ("unavailable", -7.05), ("assessed", -9.8),
-                           ("reasons", -9.8), ("phaseInclude", -13.0),
-                           ("final", -13.0)):
-            moved = base-extra_ident_cm
-            source = re.sub(
-                r"(\(" + name + r"\)\s*at\s*\([^,]+,)\s*" + re.escape(str(base)) + r"(\))",
-                lambda m: m.group(1)+f"{moved:.2f}"+m.group(2), source, count=1)
-    if extra_reasons_cm:
-        for name, base in (("phaseInclude", -13.0-extra_ident_cm),
-                           ("final", -13.0-extra_ident_cm)):
-            source = re.sub(
-                r"(\(" + name + r"\)\s*at\s*\([^,]+,)\s*" + re.escape(f"{base:.2f}" if extra_ident_cm else str(base)) + r"(\))",
-                lambda m: m.group(1)+f"{base-extra_reasons_cm:.2f}"+m.group(2), source, count=1)
+    # Place successive rows from actual TikZ bounding boxes, not estimated line counts.
+    # Each row expands naturally for long source lists and wrapped exclusion text.
+    # Visual styles (colours, line weights, fonts, box widths) remain unchanged.
+    positions = {
+        "records": "(1.15,-1.15)",
+        "preremoved": "(8.1,-1.15)",
+        "phaseScreen": r"($(phaseID.center |- identrow.south)+(0,-1.45cm)$)",
+        "screen": r"($(records.center |- identrow.south)+(0,-1.45cm)$)",
+        "screenout": r"($(preremoved.center |- identrow.south)+(0,-1.45cm)$)",
+        "sought": r"($(screen.center |- screenrow.south)+(0,-1.45cm)$)",
+        "unavailable": r"($(screenout.center |- screenrow.south)+(0,-1.45cm)$)",
+        "assessed": r"($(sought.center |- retrievalrow.south)+(0,-1.55cm)$)",
+        "reasons": r"($(unavailable.center |- retrievalrow.south)+(0,-1.55cm)$)",
+        "phaseInclude": r"($(phaseID.center |- eligibilityrow.south)+(0,-1.50cm)$)",
+        "final": r"($(assessed.center |- eligibilityrow.south)+(0,-1.50cm)$)",
+    }
+    for name, coordinate in positions.items():
+        pat = r"(\\node\[[^\]]+\]\s*\(" + re.escape(name) + r"\)\s*at\s*)\([^\n]*?\)"
+        source, num = re.subn(pat, lambda m: m.group(1) + coordinate, source, count=1)
+        if num != 1:
+            raise ValueError(f"Could not anchor layout node: {name}")
+
+    # Keep the first row's top edge stationary as content grows downwards.
+    for name in ("records", "preremoved"):
+        pat = r"(\\node\[)([^\]]+)(\]\s*\(" + name + r"\))"
+        source, num = re.subn(pat, lambda m: m.group(1) + m.group(2) +
+                              ",anchor=north" + m.group(3), source, count=1)
+        if num != 1:
+            raise ValueError(f"Could not fix top anchor: {name}")
+
+    # Invisible fit bounds measure actual node height including wrapped lines.
+    bounds = [
+        ("preremoved", "identrow", "records", "preremoved"),
+        ("screenout", "screenrow", "screen", "screenout"),
+        ("unavailable", "retrievalrow", "sought", "unavailable"),
+        ("reasons", "eligibilityrow", "assessed", "reasons"),
+    ]
+    for after, rowname, firstbox, secondbox in bounds:
+        pat = (r"(\\node\[[^\]]+\]\s*\(" + after +
+               r"\)\s*at\s*.*?\{.*?\};)")
+        fit = (r"\node[inner sep=0pt,outer sep=0pt,fit=(" + firstbox +
+               ")(" + secondbox + ")] (" + rowname + ") {};" )
+        source, num = re.subn(pat, lambda m: m.group(1) + "\n" + fit,
+                               source, count=1, flags=re.S)
+        if num != 1:
+            raise ValueError(f"Could not measure layout row: {rowname}")
     return source
 
 @st.cache_data(show_spinner=False, max_entries=8)
