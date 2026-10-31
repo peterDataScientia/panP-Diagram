@@ -1,12 +1,12 @@
 # panP-Diagram
 
-Streamlit PRISMA flow designer powered by the **original user-supplied LaTeX figure**.
+Streamlit PRISMA flow designer powered by the **user-supplied V2 LaTeX figure**.
 
 ## Figure fidelity
-The authoritative design is [FIGURE_original.tex](FIGURE_original.tex), preserved verbatim. Its original `tcolorbox` outer border, colours, TikZ node coordinates, fonts, box styles and arrow paths are retained. Streamlit updates node text and numbers only, then compiles the resulting TikZ source with actual `pdflatex`. Live preview is rasterized from the compiled PDF.
+The authoritative design is [V2.tex](V2.tex), preserved verbatim. Its original `tcolorbox` outer border, colours, TikZ node coordinates, fonts, box styles and arrow paths are retained. Streamlit updates node text and numbers only, then compiles the resulting TikZ source with actual `pdflatex`. Live preview is rasterized from the compiled PDF.
 
 ## Features
-- Editable complete demonstration with Scopus (142), PubMed (38) and the original screening counts
+- Editable full V2 demonstration with Scopus (142), PubMed (38), Web of Science (20) and V2 screening counts
 - Select databases and other sources from built-in lists, then click **Add Database** or **Add Source**; enter a custom name if needed
 - Edit/remove entries and exclusion reasons, with editable record counts
 - Automatic count calculations, basic arithmetic validation and studies/reports distinction
