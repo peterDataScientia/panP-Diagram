@@ -1,2 +1,3 @@
-libcairo2
-libffi8
+texlive-latex-extra
+texlive-pictures
+poppler-utils
