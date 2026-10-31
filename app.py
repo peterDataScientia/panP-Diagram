@@ -196,9 +196,8 @@ with right:
     st.image(art,use_container_width=True)
     st.caption("Illustrative example data only. Verify your actual selection process and PRISMA reporting.")
     if not problems:
-        a,b,d=st.columns(3)
+        a,d=st.columns(2)
         a.download_button("PDF",cairosvg.svg2pdf(bytestring=art.encode()),"panP_Diagram.pdf","application/pdf",use_container_width=True)
-        b.download_button("SVG",art.encode(),"panP_Diagram.svg","image/svg+xml",use_container_width=True)
         d.download_button("PNG",cairosvg.svg2png(bytestring=art.encode(),output_width=1450),"panP_Diagram.png","image/png",use_container_width=True)
         st.download_button("Editable TikZ (.tex)",tikz(p,c).encode(),"panP_Diagram.tex","text/plain")
     st.download_button("Save project JSON",json.dumps(p,indent=2).encode(),"panP_Project.json","application/json")
