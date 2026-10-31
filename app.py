@@ -132,6 +132,26 @@ def render(tex):
             raise RuntimeError("Preview conversion failed: " + png_result.stderr[-1500:])
         return pdf, (folder / "preview.png").read_bytes()
 
+DATABASE_OPTIONS = [
+    "Scopus", "PubMed / MEDLINE", "Web of Science Core Collection",
+    "Embase", "Cochrane CENTRAL", "Cochrane Library", "CINAHL",
+    "PsycINFO", "ERIC", "IEEE Xplore", "ACM Digital Library",
+    "ScienceDirect", "SpringerLink", "Wiley Online Library",
+    "Google Scholar", "Dimensions", "OpenAlex", "LILACS",
+    "African Journals Online (AJOL)", "African Index Medicus",
+    "ProQuest", "EBSCOhost", "ClinicalTrials.gov", "WHO ICTRP",
+    "Custom database..."
+]
+SOURCE_OPTIONS = [
+    "Citation searching (backward)", "Citation searching (forward)",
+    "Reference lists", "Websites / organisations", "Google Search",
+    "Handsearching journals", "Conference proceedings",
+    "Expert contacts", "Author contacts", "Preprint servers",
+    "Institutional repositories", "Theses and dissertations",
+    "Trial registers", "Grey literature", "Other methods",
+    "Custom source..."
+]
+
 def editor(p, key, title):
     st.markdown("#### " + title)
     for i, item in enumerate(p[key][:]):
@@ -140,12 +160,36 @@ def editor(p, key, title):
                                     label_visibility="collapsed")
         item["n"] = int(b.number_input("Count", value=int(item["n"]), min_value=0,
                                           key=f"{key}_count_{i}", label_visibility="collapsed"))
-        if d.button("✕", key=f"{key}_delete_{i}"):
+        if d.button("✕", key=f"{key}_delete_{i}", help="Remove this entry"):
             p[key].pop(i)
+            for prefix in (f"{key}_name_", f"{key}_count_"):
+                for widget_key in [k for k in list(st.session_state) if k.startswith(prefix)]:
+                    del st.session_state[widget_key]
             st.rerun()
-    if st.button("＋ Add " + title.lower(), key=f"{key}_add"):
-        p[key].append({"name": "New entry", "n": 0})
-        st.rerun()
+    if key in ("databases", "other_sources"):
+        options = DATABASE_OPTIONS if key == "databases" else SOURCE_OPTIONS
+        chosen = st.selectbox("Choose " + ("database" if key == "databases" else "source"),
+                              options, key=f"{key}_choice")
+        custom = None
+        if chosen.startswith("Custom"):
+            custom = st.text_input("Custom name", key=f"{key}_custom").strip()
+        a, b = st.columns([2, 1])
+        new_n = int(a.number_input("Records (n)", value=0, min_value=0,
+                                    key=f"{key}_new_count"))
+        if b.button("＋ Add Database" if key == "databases" else "＋ Add Source",
+                    key=f"{key}_add", use_container_width=True):
+            name = custom if chosen.startswith("Custom") else chosen
+            if not name:
+                st.warning("Enter a name first.")
+            elif any(x["name"].casefold() == name.casefold() for x in p[key]):
+                st.warning("Already in the list. Edit its count above.")
+            else:
+                p[key].append({"name": name, "n": new_n})
+                st.rerun()
+    else:
+        if st.button("＋ Add exclusion reason", key=f"{key}_add"):
+            p[key].append({"name": "New exclusion reason", "n": 0})
+            st.rerun()
 
 st.set_page_config(page_title="panP-Diagram", layout="wide", page_icon="🔬")
 if "project" not in st.session_state:
