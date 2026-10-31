@@ -193,7 +193,8 @@ with right:
     if not problems:st.success("Arithmetic validation passed.")
     if c["reports"]>c["studies"] and not problems:st.warning("Multiple reports per included study: verify study-level grouping.")
     art=diagram(p,c)
-    st.image(art.encode("utf-8"), use_container_width=True)
+    preview_png = cairosvg.svg2png(bytestring=art.encode("utf-8"), output_width=1450)
+    st.image(preview_png, use_container_width=True)
     st.caption("Illustrative example data only. Verify your actual selection process and PRISMA reporting.")
     if not problems:
         a,d=st.columns(2)
