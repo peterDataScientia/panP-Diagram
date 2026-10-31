@@ -124,54 +124,81 @@ def build_tex(p, c):
               "% Original V2 theme and color definitions retained below.\n" +
               theme_definitions + source[last:])
 
-    # Preserve the exact V2 arrangement and original coordinates for the
-    # default dataset. Expand the overall figure vertically only as entries
-    # increase. No changes to box styles, colour intensity, or arrow styles.
-    # Extend the identification and eligibility boxes downward only.
-    # Match the actual literal node declarations in V2.tex.
-    for node, x in (("records", "1.15"), ("preremoved", "8.1")):
-        old = r"\node[" + ("basic" if node == "records" else "exclusion") + r"] (" + node + r") at (" + x + ",-1.65)"
-        new = r"\node[" + ("basic" if node == "records" else "exclusion") + r",anchor=north] (" + node + r") at (" + x + ",-0.85)"
-        if old not in source:
-            raise ValueError(f"Missing expected figure node: {node}")
-        source = source.replace(old, new, 1)
+    # Preserve V2's original styling. Each row is positioned relative to
+    # the actual bottom of the previous row, regardless of content height.
+    # All horizontal connections share the same vertical centre.
+    def position(name, coordinate, top=False):
+        nonlocal source
+        pattern = (r"(\\node\[)([^\]]+)(\]\s*\(" + re.escape(name) +
+                   r"\)\s*at\s*)\([^\n]*?\)")
+        source, matched = re.subn(
+            pattern,
+            lambda m: m.group(1) + m.group(2) +
+                      (",anchor=north" if top else "") +
+                      m.group(3) + coordinate,
+            source, count=1
+        )
+        if matched != 1:
+            raise ValueError(f"Could not locate layout node: {name}")
 
-    # Anchor eligibility exclusion box at its top without altering its style.
-    old = r"\node[exclusion] (reasons) at (8.1,-9.8)"
-    new = r"\node[exclusion,anchor=north] (reasons) at (8.1,-8.95)"
-    if old not in source:
-        raise ValueError("Missing expected figure node: reasons")
-    source = source.replace(old, new, 1)
+    def after_node(name, addition):
+        nonlocal source
+        pattern = (r"(\\node\[[^\]]+\]\s*\(" + re.escape(name) +
+                   r"\)\s*at\s*[^\n]*?\s*\{.*?\};)")
+        source, matched = re.subn(
+            pattern, lambda m: m.group(1) + "\n" + addition,
+            source, count=1, flags=re.S
+        )
+        if matched != 1:
+            raise ValueError(f"Could not locate row anchor: {name}")
 
-    additional_sources = max(0, len(entries) - 5)
-    additional_reasons = max(0, len(reasons) - 5)
-    source_shift = 0.58 * additional_sources
-    reason_shift = 0.58 * additional_reasons
-    y_positions = {
-        "phaseScreen": -5.10 - source_shift,
-        "screen": -5.10 - source_shift,
-        "screenout": -5.10 - source_shift,
-        "sought": -7.05 - source_shift,
-        "unavailable": -7.05 - source_shift,
-        "assessed": -9.80 - source_shift,
+    # Remove labels before repositioning, then draw them beside the actual rows.
+    for name in ("phaseID", "phaseScreen", "phaseInclude"):
+        pat = (r"\\node\[phase\]\s*\(" + name +
+               r"\)\s*at\s*\([^\n]*?\)\s*\{.*?\};")
+        source, matched = re.subn(pat, "", source, count=1, flags=re.S)
+        if matched != 1:
+            raise ValueError(f"Could not find phase label: {name}")
 
-        "phaseInclude": -13.0 - source_shift - reason_shift,
-        "final": -13.0 - source_shift - reason_shift,
-    }
-    source = source.replace(
-        r"\node[exclusion,anchor=north] (reasons) at (8.1,-8.95)",
-        r"\node[exclusion,anchor=north] (reasons) at (8.1," +
-        f"{-8.95 - source_shift:.2f})",
-        1,
+    position("records", "(1.15,-0.80)", top=True)
+    position("preremoved", r"($(records.center)+(6.95cm,0)$)")
+    after_node("preremoved",
+               r"\node[inner sep=0pt,outer sep=0pt,fit=(records)(preremoved)] (rowident) {};")
+
+    position("screen", r"($(records.center |- rowident.south)+(0,-0.90cm)$)", top=True)
+    position("screenout", r"($(screen.center)+(6.95cm,0)$)")
+    after_node("screenout",
+               r"\node[inner sep=0pt,outer sep=0pt,fit=(screen)(screenout)] (rowscreen) {};")
+
+    position("sought", r"($(screen.center |- rowscreen.south)+(0,-0.85cm)$)", top=True)
+    position("unavailable", r"($(sought.center)+(6.95cm,0)$)")
+    after_node("unavailable",
+               r"\node[inner sep=0pt,outer sep=0pt,fit=(sought)(unavailable)] (rowretrieve) {};")
+
+    # Place the taller eligibility box first. Align the smaller assessed box
+    # to its vertical centre so the arrow stays horizontal.
+    assessment_pat = r"\\node\[basic\]\s*\(assessed\)\s*at\s*[^\n]*?\s*\{.*?\};"
+    reason_pat = r"\\node\[exclusion\]\s*\(reasons\)\s*at\s*[^\n]*?\s*\{.*?\};"
+    assessed_node = re.search(assessment_pat, source, flags=re.S)
+    reasons_node = re.search(reason_pat, source, flags=re.S)
+    if not assessed_node or not reasons_node:
+        raise ValueError("Could not arrange eligibility row")
+    source = (source[:assessed_node.start()] +
+              source[reasons_node.start():reasons_node.end()] + "\n" +
+              source[assessed_node.start():assessed_node.end()] +
+              source[reasons_node.end():])
+    position("reasons", r"($(unavailable.center |- rowretrieve.south)+(0,-0.95cm)$)", top=True)
+    position("assessed", r"($(reasons.center)+(-6.95cm,0)$)")
+    after_node("assessed",
+               r"\node[inner sep=0pt,outer sep=0pt,fit=(assessed)(reasons)] (roweligible) {};")
+
+    position("final", r"($(assessed.center |- roweligible.south)+(0,-1.05cm)$)", top=True)
+    labels = (
+        r"\node[phase] (phaseID) at ($(records.west)+(-2.95cm,0)$) {Identification};" + "\n" +
+        r"\node[phase] (phaseScreen) at ($(screen.west)+(-2.95cm,0)$) {Screening};" + "\n" +
+        r"\node[phase] (phaseInclude) at ($(final.west)+(-2.95cm,0)$) {Included};" + "\n"
     )
-    for name, y in y_positions.items():
-        pat = (r"(\\node\[[^\]]+\]\s*\(" + re.escape(name) +
-               r"\)\s*at\s*\(\s*([^,]+),\s*)(-?\d+(?:\.\d+)?)(\s*\))")
-        source, found = re.subn(
-            pat, lambda m: m.group(1) + f"{y:.2f}" + m.group(4),
-            source, count=1)
-        if found != 1:
-            raise ValueError(f"V2 layout position missing: {name}")
+    source = source.replace("% Draw after nodes", labels + "% Draw after nodes", 1)
     return source
 
 @st.cache_data(show_spinner=False, max_entries=8)
