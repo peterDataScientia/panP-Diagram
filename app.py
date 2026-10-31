@@ -234,11 +234,11 @@ if "project" not in st.session_state:
     st.session_state.project = copy.deepcopy(DEMO)
 p = st.session_state.project
 st.title("panP-Diagram")
-st.caption("Original V2.tex design · Full editable demo · Automatic arithmetic · PDF / PNG / TikZ exports")
+st.caption("Create and export PRISMA flow diagrams")
 
 with st.sidebar:
     st.subheader("Project")
-    if st.button("Restore original full demo", use_container_width=True):
+    if st.button("Reset example data", use_container_width=True):
         for k in list(st.session_state):
             del st.session_state[k]
         st.rerun()
@@ -284,7 +284,7 @@ with controls:
         p["included_label"] = st.text_input("Included label", p["included_label"])
 
 with preview:
-    st.subheader("V2 LaTeX figure · Live preview")
+    st.subheader("Figure preview")
     counts = calculate(p)
     for col, (name, value) in zip(st.columns(4), (
             ("Identified", counts["identified"]), ("Screened", counts["screened"]),
@@ -308,6 +308,6 @@ with preview:
                               use_container_width=True)
         except (RuntimeError, subprocess.TimeoutExpired, FileNotFoundError) as e:
             st.error(f"LaTeX renderer unavailable: {e}")
-        st.download_button("Download V2 TikZ (.tex)", source.encode("utf-8"),
+        st.download_button("Download LaTeX (.tex)", source.encode("utf-8"),
                            "panP_Diagram.tex", "text/plain", use_container_width=True)
-    st.caption("Illustrative demonstration counts, not published study findings.")
+    st.caption("Example counts are shown. Replace them with your own data.")
