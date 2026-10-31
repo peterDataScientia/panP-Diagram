@@ -7,7 +7,7 @@ panP-Diagram provides a structured interface for documenting the identification,
 ## Features
 
 - **Search source management:** Select databases and other information sources from predefined lists, or add custom entries.
-- **Editable selection records:** Add, update, and remove source counts and exclusion reasons.
+- **Editable selection records:** Add, update, and remove source counts, pre-screening removal categories, and eligibility exclusion reasons. If all pre-screening removal categories are removed, their box and connector are omitted from the figure.
 - **Automatic calculations:** Calculate totals across identification, screening, retrieval, and eligibility stages.
 - **Data validation:** Flag inconsistent counts and distinguish included reports from distinct included studies.
 - **Figure preview:** Display the updated diagram as selection data change.
