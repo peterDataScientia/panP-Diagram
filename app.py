@@ -93,10 +93,12 @@ def build_tex(p, c):
         entries.append(r"\textbf{Other sources:}")
         entries += [latex_escape(r["name"]) + " " + tex_count(r["n"]) for r in p["other_sources"]]
     entries += [r"\textbf{Total " + tex_count(c["identified"]) + "}"]
-    removed = [r"\textbf{Records removed before\\screening:}"]
-    removed += [latex_escape(r["name"]) + " " + tex_count(r["n"])
-                for r in p["pre_screen_reasons"]]
-    removed.append(r"\textbf{Total " + tex_count(c["removed"]) + "}")
+    removed = []
+    if p["pre_screen_reasons"]:
+        removed = [r"\textbf{Records removed before\\screening:}"]
+        removed += [latex_escape(r["name"]) + " " + tex_count(r["n"])
+                    for r in p["pre_screen_reasons"]]
+        removed.append(r"\textbf{Total " + tex_count(c["removed"]) + "}")
     reasons = [r"\textbf{Reports excluded:\\(with reasons):}"]
     reasons += [latex_escape(r["name"]) + " " + tex_count(r["n"]) for r in p["exclusion_reasons"]]
     reasons += [r"\textbf{Total " + tex_count(count(p["exclusion_reasons"])) + "}"]
@@ -330,6 +332,15 @@ with st.sidebar:
                 raise ValueError("Project must be a JSON object")
             updated = copy.deepcopy(DEMO)
             updated.update(new)
+            if "pre_screen_reasons" not in new and any(
+                key in new for key in ("duplicates", "automation_removed", "other_removed")
+            ):
+                updated["pre_screen_reasons"] = [
+                    {"name": "Duplicate records", "n": int(new.get("duplicates", 0))},
+                    {"name": "Marked ineligible by automation",
+                     "n": int(new.get("automation_removed", 0))},
+                    {"name": "Other reasons", "n": int(new.get("other_removed", 0))},
+                ]
             if st.button("Apply project"):
                 for k in list(st.session_state):
                     del st.session_state[k]
