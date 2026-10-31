@@ -117,10 +117,12 @@ def build_tex(p, c):
     first = source.index("% ==================== CONFIGURATION")
     last = source.index("% ================= END CONFIGURATION") 
     last = source.index("\n", last) + 1
+    theme_start = source.index("% Theme", first, last)
+    theme_definitions = source[theme_start:last]
     source = (source[:first] +
               "% GENERATED FIGURE DATA — modify values using panP-Diagram.\n" +
-              "% Layout, styling and arrows below originate from V2.tex.\n" +
-              source[last:])
+              "% Original V2 theme and color definitions retained below.\n" +
+              theme_definitions + source[last:])
 
     # V2 originally positions rows for three databases and three exclusion reasons.
     # Give additional rows vertical space while retaining each node's design.
