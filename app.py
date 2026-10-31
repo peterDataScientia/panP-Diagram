@@ -20,6 +20,7 @@ DEMO = {
     "not_retrieved": 2,
     "exclusion_reasons": [{"name": "Ineligible study design", "n": 4}, {"name": "Ineligible outcomes", "n": 3}, {"name": "Insufficient relevant data", "n": 1}],
     "study_count": 20,
+    "auto_studies": True,
     "heading": "Identification of studies via databases and registers",
     "included_label": "Studies included in review",
 }
@@ -50,7 +51,7 @@ def calculate(p):
     reports = assessed - count(p["exclusion_reasons"])
     return dict(identified=identified, removed=removed, screened=screened,
                 sought=sought, assessed=assessed, reports=reports,
-                studies=p["study_count"])
+                studies=reports if p.get("auto_studies", True) else p["study_count"])
 
 def validate(p, c):
     issues = []
@@ -332,9 +333,26 @@ with controls:
     with st.expander("Eligibility exclusions", expanded=True):
         editor(p, "exclusion_reasons", "Exclusion reasons")
     with st.expander("Included", expanded=True):
-        p["study_count"] = int(st.number_input(
-            "Distinct included studies", min_value=0, value=int(p["study_count"])))
+        p["auto_studies"] = st.checkbox(
+            "Automatically calculate included studies",
+            value=bool(p.get("auto_studies", True)),
+            help="Uses included reports as the study count. Turn off if multiple reports refer to the same study.",
+        )
+        if not p["auto_studies"]:
+            p["study_count"] = int(st.number_input(
+                "Distinct included studies", min_value=0, value=int(p["study_count"])))
         p["included_label"] = st.text_input("Included label", p["included_label"])
+
+    # All following values are outputs, not fields that users must calculate.
+    live = calculate(p)
+    st.markdown("#### Automatically calculated totals")
+    st.write(f"Records identified: **{live['identified']}**")
+    st.write(f"Removed before screening: **{live['removed']}**")
+    st.write(f"Records screened: **{live['screened']}**")
+    st.write(f"Reports sought: **{live['sought']}**")
+    st.write(f"Reports assessed: **{live['assessed']}**")
+    st.write(f"Included reports: **{live['reports']}**")
+    st.write(f"Included studies: **{live['studies']}**")
 
 with preview:
     st.subheader("Figure preview")
