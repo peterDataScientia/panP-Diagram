@@ -124,37 +124,28 @@ def build_tex(p, c):
               "% Original V2 theme and color definitions retained below.\n" +
               theme_definitions + source[last:])
 
-    # Place successive rows from actual TikZ bounding boxes, not estimated line counts.
-    # Each row expands naturally for long source lists and wrapped exclusion text.
-    # Visual styles (colours, line weights, fonts, box widths) remain unchanged.
+    # Layout rows top-to-bottom, anchoring their TOP edges below the previous
+    # row's measured BOTTOM edge. This guarantees clearance for variable content.
     positions = {
-        "records": "(1.15,-1.15)",
-        "preremoved": "(8.1,-1.15)",
-        "phaseScreen": r"($(phaseID.center |- identrow.south)+(0,-1.45cm)$)",
-        "screen": r"($(records.center |- identrow.south)+(0,-1.45cm)$)",
-        "screenout": r"($(preremoved.center |- identrow.south)+(0,-1.45cm)$)",
-        "sought": r"($(screen.center |- screenrow.south)+(0,-1.45cm)$)",
-        "unavailable": r"($(screenout.center |- screenrow.south)+(0,-1.45cm)$)",
-        "assessed": r"($(sought.center |- retrievalrow.south)+(0,-1.55cm)$)",
-        "reasons": r"($(unavailable.center |- retrievalrow.south)+(0,-1.55cm)$)",
-        "phaseInclude": r"($(phaseID.center |- eligibilityrow.south)+(0,-1.50cm)$)",
-        "final": r"($(assessed.center |- eligibilityrow.south)+(0,-1.50cm)$)",
+        "records": "(1.15,-0.85)",
+        "preremoved": "(8.1,-0.85)",
+        "screen": r"($(records.center |- identrow.south)+(0,-0.85cm)$)",
+        "screenout": r"($(preremoved.center |- identrow.south)+(0,-0.85cm)$)",
+        "sought": r"($(screen.center |- screenrow.south)+(0,-0.75cm)$)",
+        "unavailable": r"($(screenout.center |- screenrow.south)+(0,-0.75cm)$)",
+        "assessed": r"($(sought.center |- retrievalrow.south)+(0,-0.85cm)$)",
+        "reasons": r"($(unavailable.center |- retrievalrow.south)+(0,-0.85cm)$)",
+        "final": r"($(assessed.center |- eligibilityrow.south)+(0,-0.95cm)$)",
     }
     for name, coordinate in positions.items():
-        pat = r"(\\node\[[^\]]+\]\s*\(" + re.escape(name) + r"\)\s*at\s*)\([^\n]*?\)"
-        source, num = re.subn(pat, lambda m: m.group(1) + coordinate, source, count=1)
+        pat = r"(\\node\[)([^\]]+)(\]\s*\(" + re.escape(name) + r"\)\s*at\s*)\([^\n]*?\)"
+        source, num = re.subn(
+            pat, lambda m: m.group(1) + m.group(2) + ",anchor=north" +
+            m.group(3) + coordinate, source, count=1)
         if num != 1:
             raise ValueError(f"Could not anchor layout node: {name}")
 
-    # Keep the first row's top edge stationary as content grows downwards.
-    for name in ("records", "preremoved"):
-        pat = r"(\\node\[)([^\]]+)(\]\s*\(" + name + r"\))"
-        source, num = re.subn(pat, lambda m: m.group(1) + m.group(2) +
-                              ",anchor=north" + m.group(3), source, count=1)
-        if num != 1:
-            raise ValueError(f"Could not fix top anchor: {name}")
-
-    # Invisible fit bounds measure actual node height including wrapped lines.
+    # Invisible fit bounds measure real height of each row's two boxes.
     bounds = [
         ("preremoved", "identrow", "records", "preremoved"),
         ("screenout", "screenrow", "screen", "screenout"),
@@ -165,11 +156,27 @@ def build_tex(p, c):
         pat = (r"(\\node\[[^\]]+\]\s*\(" + after +
                r"\)\s*at\s*.*?\{.*?\};)")
         fit = (r"\node[inner sep=0pt,outer sep=0pt,fit=(" + firstbox +
-               ")(" + secondbox + ")] (" + rowname + ") {};" )
+               ")(" + secondbox + ")] (" + rowname + ") {};")
         source, num = re.subn(pat, lambda m: m.group(1) + "\n" + fit,
                                source, count=1, flags=re.S)
         if num != 1:
             raise ValueError(f"Could not measure layout row: {rowname}")
+
+    # Stage labels are centered alongside their measured rows.
+    # Move definitions below the boxes so their anchors already exist.
+    for phase, row in (("phaseID", "identrow"),
+                       ("phaseScreen", "screenrow"),
+                       ("phaseInclude", "final")):
+        pat = r"\\node\[phase\]\s*\(" + phase + r"\)\s*at\s*\([^\n]*?\)\s*\{.*?\};"
+        match = re.search(pat, source, flags=re.S)
+        if match is None:
+            raise ValueError(f"Could not locate phase label: {phase}")
+        caption = {"phaseID": "Identification", "phaseScreen": "Screening",
+                   "phaseInclude": "Included"}[phase]
+        source = source[:match.start()] + source[match.end():]
+        inserted = (r"\node[phase] (" + phase + ") at ($(" + row +
+                    r".west)+(-1.90cm,0)$) {" + caption + "};\n")
+        source = source.replace("% Draw after nodes", inserted + "% Draw after nodes", 1)
     return source
 
 @st.cache_data(show_spinner=False, max_entries=8)
