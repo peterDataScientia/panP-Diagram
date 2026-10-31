@@ -9,7 +9,7 @@ An open-source Streamlit PRISMA flow diagram designer with a complete editable d
 - Arithmetic checks for impossible negative counts and included reports/studies
 - Live vector diagram with arrows anchored at box borders
 - Original navy (#174A7E), teal (#007C83), orange (#B85C00) and green (#287A3D) theme
-- PDF, SVG, PNG and standalone LaTeX/TikZ exports
+- PDF, PNG and standalone LaTeX/TikZ exports
 - Save/load editable JSON projects
 
 ## Run locally
