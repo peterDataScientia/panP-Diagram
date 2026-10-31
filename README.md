@@ -1,33 +1,85 @@
 # panP-Diagram
 
-A Streamlit application for creating and exporting PRISMA flow diagrams.
+**An interactive application for creating, editing, and exporting PRISMA-style study selection flow diagrams.**
 
-## Figure fidelity
-The authoritative design is [V2.tex](V2.tex), preserved verbatim. Its original `tcolorbox` outer border, colours, TikZ node coordinates, fonts, box styles and arrow paths are retained. Streamlit updates node text and numbers only, then compiles the resulting TikZ source with actual `pdflatex`. Live preview is rasterized from the compiled PDF.
+panP-Diagram provides a structured interface for documenting the identification, screening, retrieval, eligibility assessment, and inclusion stages of literature reviews. Users can manage search sources and exclusion reasons, review calculated totals, and export figures for reports, manuscripts, or further editing.
 
 ## Features
-- Editable example with Scopus, PubMed and Web of Science records
-- Select databases and other sources from built-in lists, then click **Add Database** or **Add Source**; enter a custom name if needed
-- Edit/remove entries and exclusion reasons, with editable record counts
-- Automatic count calculations, basic arithmetic validation and studies/reports distinction
-- PDF, PNG, editable LaTeX (.tex) downloads
-- Save/load project as JSON
-- No SVG download; no SVG diagram generator
 
-## Deploy on Streamlit Community Cloud
-- Repository: `peterDataScientia/panP-Diagram`
-- Branch: `main`
-- Main file: `app.py`
-- `requirements.txt` installs Streamlit
-- `packages.txt` installs native TeX Live and Poppler PDF rendering utilities
+- **Search source management:** Select databases and other information sources from predefined lists, or add custom entries.
+- **Editable selection records:** Add, update, and remove source counts and exclusion reasons.
+- **Automatic calculations:** Calculate totals across identification, screening, retrieval, and eligibility stages.
+- **Data validation:** Flag inconsistent counts and distinguish included reports from distinct included studies.
+- **Figure preview:** Display the updated diagram as selection data change.
+- **Export options:** Download publication-oriented PDF, high-resolution PNG, or editable LaTeX (`.tex`) files.
+- **Project portability:** Save and restore project inputs in JSON format.
+- **Worked example:** Start with a fully populated example and replace its values with your own.
 
-Native LaTeX installation can extend deployment build duration. If a server restricts installation of TeX packages, PDF/PNG preview requires a compatible LaTeX-capable host. A standalone .tex download is generated even if a runtime compilation fails.
+## Getting started
 
-## Run locally
+### Requirements
+
+- Python 3.10 or newer
+- A LaTeX distribution providing `pdflatex`, TikZ/PGF, `tcolorbox`, and the `standalone` class
+- Poppler's `pdftoppm` utility for PNG rendering
+
+### Local installation
+
+Clone the repository and install the Python dependencies:
+
 ```bash
-pip install -r requirements.txt
+git clone https://github.com/peterDataScientia/panP-Diagram.git
+cd panP-Diagram
+python -m pip install -r requirements.txt
+```
+
+Ensure `pdflatex` and `pdftoppm` are available on your system's `PATH`, then launch the application:
+
+```bash
 streamlit run app.py
 ```
-Install `pdflatex` (TeX Live with TikZ/tcolorbox) and `pdftoppm` (Poppler) on PATH.
 
-Demo data are illustrative and not real review findings.
+Open the local URL displayed by Streamlit in your browser.
+
+## Using the application
+
+1. **Identify sources.** Choose a database or another information source, enter the number of records identified, and select **Add Database** or **Add Source**. Additional sources can be entered manually.
+2. **Record screening decisions.** Enter the numbers of duplicate records, records removed before screening, screening exclusions, and reports not retrieved.
+3. **Document eligibility.** Add exclusion reasons and their associated report counts.
+4. **Review results.** Check the calculated totals and any validation messages. Enter the number of distinct included studies where it differs from the number of included reports.
+5. **Export or save.** Download the diagram as PDF, PNG, or LaTeX, or save a JSON project for subsequent editing.
+
+## Outputs
+
+| Format | Intended use |
+| --- | --- |
+| PDF | Vector figure for documents and manuscripts |
+| PNG | Raster figure for presentations and general use |
+| LaTeX (`.tex`) | Editable figure source for LaTeX workflows |
+| JSON | Reusable project data and settings |
+
+PDF and PNG rendering uses a LaTeX toolchain. A compatible LaTeX installation is therefore necessary on the host system.
+
+## Streamlit Community Cloud deployment
+
+To deploy the application, connect this repository to [Streamlit Community Cloud](https://share.streamlit.io/) and configure:
+
+| Setting | Value |
+| --- | --- |
+| Repository | `peterDataScientia/panP-Diagram` |
+| Branch | `main` |
+| Main file | `app.py` |
+
+Python dependencies are listed in `requirements.txt`, and Linux system dependencies in `packages.txt`. Hosting environments must support the required LaTeX and Poppler packages.
+
+## Reporting considerations
+
+panP-Diagram assists with figure preparation; it does not independently verify literature searches, deduplication procedures, eligibility decisions, or compliance with every PRISMA reporting requirement. Users should confirm that counts, study/report distinctions, source categories, and labels accurately reflect their review methods.
+
+The default records are **illustrative examples**, not findings from a published review.
+
+For reporting guidance, consult the [PRISMA 2020 website](https://www.prisma-statement.org/).
+
+## License
+
+This project is distributed under the [MIT License](LICENSE).
