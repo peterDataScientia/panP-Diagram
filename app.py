@@ -124,59 +124,32 @@ def build_tex(p, c):
               "% Original V2 theme and color definitions retained below.\n" +
               theme_definitions + source[last:])
 
-    # Layout rows top-to-bottom, anchoring their TOP edges below the previous
-    # row's measured BOTTOM edge. This guarantees clearance for variable content.
-    positions = {
-        "records": "(1.15,-0.85)",
-        "preremoved": "(8.1,-0.85)",
-        "screen": r"($(records.center |- identrow.south)+(0,-0.85cm)$)",
-        "screenout": r"($(preremoved.center |- identrow.south)+(0,-0.85cm)$)",
-        "sought": r"($(screen.center |- screenrow.south)+(0,-0.75cm)$)",
-        "unavailable": r"($(screenout.center |- screenrow.south)+(0,-0.75cm)$)",
-        "assessed": r"($(sought.center |- retrievalrow.south)+(0,-0.85cm)$)",
-        "reasons": r"($(unavailable.center |- retrievalrow.south)+(0,-0.85cm)$)",
-        "final": r"($(assessed.center |- eligibilityrow.south)+(0,-0.95cm)$)",
+    # Preserve the exact V2 arrangement and original coordinates for the
+    # default dataset. Expand the overall figure vertically only as entries
+    # increase. No changes to box styles, colour intensity, or arrow styles.
+    additional_sources = max(0, len(entries) - 5)
+    additional_reasons = max(0, len(reasons) - 5)
+    source_shift = 0.58 * additional_sources
+    reason_shift = 0.58 * additional_reasons
+    y_positions = {
+        "phaseScreen": -5.10 - source_shift,
+        "screen": -5.10 - source_shift,
+        "screenout": -5.10 - source_shift,
+        "sought": -7.05 - source_shift,
+        "unavailable": -7.05 - source_shift,
+        "assessed": -9.80 - source_shift,
+        "reasons": -9.80 - source_shift,
+        "phaseInclude": -13.0 - source_shift - reason_shift,
+        "final": -13.0 - source_shift - reason_shift,
     }
-    for name, coordinate in positions.items():
-        pat = r"(\\node\[)([^\]]+)(\]\s*\(" + re.escape(name) + r"\)\s*at\s*)\([^\n]*?\)"
-        source, num = re.subn(
-            pat, lambda m: m.group(1) + m.group(2) + ",anchor=north" +
-            m.group(3) + coordinate, source, count=1)
-        if num != 1:
-            raise ValueError(f"Could not anchor layout node: {name}")
-
-    # Invisible fit bounds measure real height of each row's two boxes.
-    bounds = [
-        ("preremoved", "identrow", "records", "preremoved"),
-        ("screenout", "screenrow", "screen", "screenout"),
-        ("unavailable", "retrievalrow", "sought", "unavailable"),
-        ("reasons", "eligibilityrow", "assessed", "reasons"),
-    ]
-    for after, rowname, firstbox, secondbox in bounds:
-        pat = (r"(\\node\[[^\]]+\]\s*\(" + after +
-               r"\)\s*at\s*.*?\{.*?\};)")
-        fit = (r"\node[inner sep=0pt,outer sep=0pt,fit=(" + firstbox +
-               ")(" + secondbox + ")] (" + rowname + ") {};")
-        source, num = re.subn(pat, lambda m: m.group(1) + "\n" + fit,
-                               source, count=1, flags=re.S)
-        if num != 1:
-            raise ValueError(f"Could not measure layout row: {rowname}")
-
-    # Stage labels are centered alongside their measured rows.
-    # Move definitions below the boxes so their anchors already exist.
-    for phase, row in (("phaseID", "identrow"),
-                       ("phaseScreen", "screenrow"),
-                       ("phaseInclude", "final")):
-        pat = r"\\node\[phase\]\s*\(" + phase + r"\)\s*at\s*\([^\n]*?\)\s*\{.*?\};"
-        match = re.search(pat, source, flags=re.S)
-        if match is None:
-            raise ValueError(f"Could not locate phase label: {phase}")
-        caption = {"phaseID": "Identification", "phaseScreen": "Screening",
-                   "phaseInclude": "Included"}[phase]
-        source = source[:match.start()] + source[match.end():]
-        inserted = (r"\node[phase] (" + phase + ") at ($(" + row +
-                    r".west)+(-1.90cm,0)$) {" + caption + "};\n")
-        source = source.replace("% Draw after nodes", inserted + "% Draw after nodes", 1)
+    for name, y in y_positions.items():
+        pat = (r"(\\node\[[^\]]+\]\s*\(" + re.escape(name) +
+               r"\)\s*at\s*\(\s*([^,]+),\s*)(-?\d+(?:\.\d+)?)(\s*\))")
+        source, found = re.subn(
+            pat, lambda m: m.group(1) + f"{y:.2f}" + m.group(4),
+            source, count=1)
+        if found != 1:
+            raise ValueError(f"V2 layout position missing: {name}")
     return source
 
 @st.cache_data(show_spinner=False, max_entries=8)
