@@ -7,7 +7,8 @@ The authoritative design is [FIGURE_original.tex](FIGURE_original.tex), preserve
 
 ## Features
 - Editable complete demonstration with Scopus (142), PubMed (38) and the original screening counts
-- Add/remove databases, other sources and exclusion reasons
+- Select databases and other sources from built-in lists, then click **Add Database** or **Add Source**; enter a custom name if needed
+- Edit/remove entries and exclusion reasons, with editable record counts
 - Automatic count calculations, basic arithmetic validation and studies/reports distinction
 - PDF, PNG, editable LaTeX (.tex) downloads
 - Save/load project as JSON
