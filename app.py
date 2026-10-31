@@ -16,9 +16,11 @@ ORIGINAL = Path(__file__).with_name("V2.tex").read_text(encoding="utf-8")
 DEMO = {
     "databases": [{"name": "Scopus", "n": 142}, {"name": "PubMed", "n": 38}, {"name": "Web of Science", "n": 20}],
     "other_sources": [],
-    "duplicates": 12,
-    "automation_removed": 3,
-    "other_removed": 5,
+    "pre_screen_reasons": [
+        {"name": "Duplicate records", "n": 12},
+        {"name": "Marked ineligible by automation", "n": 3},
+        {"name": "Other reasons", "n": 5},
+    ],
     "screen_excluded": 150,
     "not_retrieved": 2,
     "exclusion_reasons": [{"name": "Ineligible study design", "n": 4}, {"name": "Ineligible outcomes", "n": 3}, {"name": "Insufficient relevant data", "n": 1}],
@@ -47,7 +49,7 @@ def count(rows):
 
 def calculate(p):
     identified = count(p["databases"]) + count(p["other_sources"])
-    removed = p["duplicates"] + p["automation_removed"] + p["other_removed"]
+    removed = count(p["pre_screen_reasons"])
     screened = identified - removed
     sought = screened - p["screen_excluded"]
     assessed = sought - p["not_retrieved"]
@@ -60,7 +62,7 @@ def validate(p, c):
     issues = []
     if not p["databases"] and not p["other_sources"]:
         issues.append("At least one identification source is required.")
-    for k in ("databases", "other_sources", "exclusion_reasons"):
+    for k in ("databases", "other_sources", "pre_screen_reasons", "exclusion_reasons"):
         for r in p[k]:
             if not r["name"].strip():
                 issues.append(f"Blank name in {k}.")
@@ -91,11 +93,10 @@ def build_tex(p, c):
         entries.append(r"\textbf{Other sources:}")
         entries += [latex_escape(r["name"]) + " " + tex_count(r["n"]) for r in p["other_sources"]]
     entries += [r"\textbf{Total " + tex_count(c["identified"]) + "}"]
-    removed = [r"\textbf{Records removed before\\screening:}",
-               "Duplicate records " + tex_count(p["duplicates"]),
-               "Automation exclusions " + tex_count(p["automation_removed"]),
-               "Other reasons " + tex_count(p["other_removed"]),
-               r"\textbf{Total " + tex_count(c["removed"]) + "}"]
+    removed = [r"\textbf{Records removed before\\screening:}"]
+    removed += [latex_escape(r["name"]) + " " + tex_count(r["n"])
+                for r in p["pre_screen_reasons"]]
+    removed.append(r"\textbf{Total " + tex_count(c["removed"]) + "}")
     reasons = [r"\textbf{Reports excluded:\\(with reasons):}"]
     reasons += [latex_escape(r["name"]) + " " + tex_count(r["n"]) for r in p["exclusion_reasons"]]
     reasons += [r"\textbf{Total " + tex_count(count(p["exclusion_reasons"])) + "}"]
@@ -203,6 +204,16 @@ def build_tex(p, c):
         r"\node[phase] (phaseInclude) at ($(final.west)+(-2.95cm,0)$) {Included};" + "\n"
     )
     source = source.replace("% Draw after nodes", labels + "% Draw after nodes", 1)
+    if not p["pre_screen_reasons"]:
+        # An empty pre-screening exclusion section should not appear in the figure.
+        # Retain the invisible node as a layout anchor for the row geometry.
+        source = source.replace(
+            r"\node[exclusion] (preremoved)",
+            r"\node[exclusion,draw=none,fill=none,text opacity=0] (preremoved)", 1
+        )
+        source = source.replace(
+            r"\draw[link] (records.east) -- (preremoved.west);", "", 1
+        )
     return source
 
 @st.cache_data(show_spinner=False, max_entries=8)
@@ -282,8 +293,8 @@ def editor(p, key, title):
                 p[key].append({"name": name, "n": new_n})
                 st.rerun()
     else:
-        if st.button("＋ Add exclusion reason", key=f"{key}_add"):
-            p[key].append({"name": "New exclusion reason", "n": 0})
+        if st.button("＋ Add reason", key=f"{key}_add"):
+            p[key].append({"name": "New reason", "n": 0})
             st.rerun()
 
 st.set_page_config(
@@ -294,6 +305,14 @@ st.set_page_config(
 if "project" not in st.session_state:
     st.session_state.project = copy.deepcopy(DEMO)
 p = st.session_state.project
+# Keep JSON projects from previous releases compatible with the new editor.
+if "pre_screen_reasons" not in p:
+    p["pre_screen_reasons"] = [
+        {"name": "Duplicate records", "n": int(p.get("duplicates", 0))},
+        {"name": "Marked ineligible by automation",
+         "n": int(p.get("automation_removed", 0))},
+        {"name": "Other reasons", "n": int(p.get("other_removed", 0))},
+    ]
 st.image(str(LOGO_PATH), width=360)
 st.caption("Create and export PRISMA flow diagrams")
 
@@ -328,10 +347,7 @@ with controls:
         editor(p, "databases", "Databases")
         editor(p, "other_sources", "Other sources")
     with st.expander("Records removed before screening", expanded=True):
-        for key, label in (("duplicates", "Duplicates"),
-                           ("automation_removed", "Marked ineligible by automation"),
-                           ("other_removed", "Removed for other reasons")):
-            p[key] = int(st.number_input(label, min_value=0, value=int(p[key])))
+        editor(p, "pre_screen_reasons", "Removal reasons")
     with st.expander("Screening and retrieval", expanded=True):
         p["screen_excluded"] = int(st.number_input(
             "Records excluded", min_value=0, value=int(p["screen_excluded"])))
