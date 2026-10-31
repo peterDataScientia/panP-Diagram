@@ -130,15 +130,15 @@ def build_tex(p, c):
     # Extend the identification and eligibility boxes downward only.
     # Match the actual literal node declarations in V2.tex.
     for node, x in (("records", "1.15"), ("preremoved", "8.1")):
-        old = r"\\node[" + ("basic" if node == "records" else "exclusion") + r"] (" + node + r") at (" + x + ",-1.65)"
-        new = r"\\node[" + ("basic" if node == "records" else "exclusion") + r",anchor=north] (" + node + r") at (" + x + ",-0.85)"
+        old = r"\node[" + ("basic" if node == "records" else "exclusion") + r"] (" + node + r") at (" + x + ",-1.65)"
+        new = r"\node[" + ("basic" if node == "records" else "exclusion") + r",anchor=north] (" + node + r") at (" + x + ",-0.85)"
         if old not in source:
             raise ValueError(f"Missing expected figure node: {node}")
         source = source.replace(old, new, 1)
 
     # Anchor eligibility exclusion box at its top without altering its style.
-    old = r"\\node[exclusion] (reasons) at (8.1,-9.8)"
-    new = r"\\node[exclusion,anchor=north] (reasons) at (8.1,-8.95)"
+    old = r"\node[exclusion] (reasons) at (8.1,-9.8)"
+    new = r"\node[exclusion,anchor=north] (reasons) at (8.1,-8.95)"
     if old not in source:
         raise ValueError("Missing expected figure node: reasons")
     source = source.replace(old, new, 1)
@@ -159,8 +159,8 @@ def build_tex(p, c):
         "final": -13.0 - source_shift - reason_shift,
     }
     source = source.replace(
-        r"\\node[exclusion,anchor=north] (reasons) at (8.1,-8.95)",
-        r"\\node[exclusion,anchor=north] (reasons) at (8.1," +
+        r"\node[exclusion,anchor=north] (reasons) at (8.1,-8.95)",
+        r"\node[exclusion,anchor=north] (reasons) at (8.1," +
         f"{-8.95 - source_shift:.2f})",
         1,
     )
