@@ -77,7 +77,7 @@ def diagram(p,c):
         fill=t["orange_light"] if kind=="excluded" else t["green_light"] if kind=="included" else "#FFFFFF"
         s.append(f'<rect x="{d["x"]}" y="{d["y"]}" width="{w}" height="{d["h"]}" rx="10" fill="{fill}" stroke="{border}" stroke-width="2.3"/>')
         for i,line in enumerate(d["lines"]):
-            s.append(f'<text x="{d["x"]+20}" y="{d["y"]+32+i*25}" fill="{t["ink"]}" font-family="Arial" font-size="17" font-weight="{"bold" if i==0 else "normal"}">{html.escape(line)}</text>')
+            s.append(f'<text x="{d["x"]+20}" y="{d["y"]+32+i*25}" fill="{t["ink"]}" font-family="Arial" font-size="17" font-weight="{("bold" if i == 0 else "normal")}">{html.escape(line)}</text>')
     for label,ref in [("Identification","identified"),("Screening","screened"),("Included","included")]:
         d=data[ref];yy=d["y"]+min(8,max(0,(d["h"]-74)/2))
         s.append(f'<rect x="40" y="{yy}" width="212" height="74" rx="9" fill="{t["teal"]}"/>')
@@ -193,7 +193,7 @@ with right:
     if not problems:st.success("Arithmetic validation passed.")
     if c["reports"]>c["studies"] and not problems:st.warning("Multiple reports per included study: verify study-level grouping.")
     art=diagram(p,c)
-    st.image(art,use_container_width=True)
+    st.image(art.encode("utf-8"), use_container_width=True)
     st.caption("Illustrative example data only. Verify your actual selection process and PRISMA reporting.")
     if not problems:
         a,d=st.columns(2)
