@@ -9,19 +9,19 @@ from pathlib import Path
 
 import streamlit as st
 
-ORIGINAL = Path(__file__).with_name("FIGURE_original.tex").read_text(encoding="utf-8")
+ORIGINAL = Path(__file__).with_name("V2.tex").read_text(encoding="utf-8")
 DEMO = {
-    "databases": [{"name": "Scopus", "n": 142}, {"name": "PubMed", "n": 38}],
+    "databases": [{"name": "Scopus", "n": 142}, {"name": "PubMed", "n": 38}, {"name": "Web of Science", "n": 20}],
     "other_sources": [],
-    "duplicates": 2,
-    "automation_removed": 0,
-    "other_removed": 0,
-    "screen_excluded": 155,
-    "not_retrieved": 0,
-    "exclusion_reasons": [{"name": "Did not satisfy inclusion criteria", "n": 7}],
-    "study_count": 16,
+    "duplicates": 12,
+    "automation_removed": 3,
+    "other_removed": 5,
+    "screen_excluded": 150,
+    "not_retrieved": 2,
+    "exclusion_reasons": [{"name": "Ineligible study design", "n": 4}, {"name": "Ineligible outcomes", "n": 3}, {"name": "Insufficient relevant data", "n": 1}],
+    "study_count": 20,
     "heading": "Identification of studies via databases and registers",
-    "included_label": "Studies included in qualitative synthesis",
+    "included_label": "Studies included in review",
 }
 
 def latex_escape(value):
@@ -70,45 +70,81 @@ def validate(p, c):
     return issues
 
 def populate_node(source, name, content):
-    # Replace only the contents of one original \node, not its style or coordinates.
-    pattern = r"(\\node\[[^\n]*\]\s*\(" + re.escape(name) + r"\)\s*at\s*\([^\n]*?\)\s*\{)(.*?)(\};)"
+    # Modify only user-facing text inside an existing V2 node.
+    pattern = (r"(\\node\[[^\]]+\]\s*\(" + re.escape(name)
+               + r"\)\s*at\s*\([^\n]*?\)\s*\{)(.*?)(\};)")
     result, n = re.subn(pattern, lambda m: m.group(1) + content + m.group(3),
                          source, count=1, flags=re.S)
     if n != 1:
-        raise ValueError(f"Original template node was not found: {name}")
+        raise ValueError(f"V2 template node not found: {name}")
     return result
 
 def build_tex(p, c):
-    s = ORIGINAL
-    identification = [r"\textbf{Records identified from:}"]
-    identification += [latex_escape(r["name"]) + " " + tex_count(r["n"]) for r in p["databases"]]
+    source = ORIGINAL
+    entries = [r"\textbf{Records identified from:}"]
+    entries += [latex_escape(r["name"]) + " " + tex_count(r["n"]) for r in p["databases"]]
     if p["other_sources"]:
-        identification += [r"\textbf{Other sources:}"]
-        identification += [latex_escape(r["name"]) + " " + tex_count(r["n"]) for r in p["other_sources"]]
-    removals = [r"\textbf{Records removed before", r"screening:}"]
-    removals.append("Duplicate records removed " + tex_count(p["duplicates"]))
-    if p["automation_removed"]:
-        removals.append("Marked ineligible by automation " + tex_count(p["automation_removed"]))
-    if p["other_removed"]:
-        removals.append("Removed for other reasons " + tex_count(p["other_removed"]))
-    exclusions = [r"\textbf{Reports excluded:}"]
-    exclusions += [latex_escape(r["name"]) + " " + tex_count(r["n"]) for r in p["exclusion_reasons"]]
-    replacements = {
-        "title": r"\textbf{" + latex_escape(p["heading"]) + "}",
-        "identified": lines(*identification),
-        "removed": lines(*removals),
-        "screened": lines(r"\textbf{Records screened}", tex_count(c["screened"])),
-        "excluded": lines(r"\textbf{Records excluded}", tex_count(p["screen_excluded"])),
+        entries.append(r"\textbf{Other sources:}")
+        entries += [latex_escape(r["name"]) + " " + tex_count(r["n"]) for r in p["other_sources"]]
+    entries += [r"\textbf{Total " + tex_count(c["identified"]) + "}"]
+    removed = [r"\textbf{Records removed before\\screening:}",
+               "Duplicate records " + tex_count(p["duplicates"]),
+               "Automation exclusions " + tex_count(p["automation_removed"]),
+               "Other reasons " + tex_count(p["other_removed"]),
+               r"\textbf{Total " + tex_count(c["removed"]) + "}"]
+    reasons = [r"\textbf{Reports excluded:\\(with reasons):}"]
+    reasons += [latex_escape(r["name"]) + " " + tex_count(r["n"]) for r in p["exclusion_reasons"]]
+    reasons += [r"\textbf{Total " + tex_count(count(p["exclusion_reasons"])) + "}"]
+    changes = {
+        "heading": latex_escape(p["heading"]),
+        "records": lines(*entries),
+        "preremoved": lines(*removed),
+        "screen": lines(r"\textbf{Records screened}", tex_count(c["screened"])),
+        "screenout": lines(r"\textbf{Records excluded}", tex_count(p["screen_excluded"])),
         "sought": lines(r"\textbf{Reports sought for retrieval}", tex_count(c["sought"])),
-        "notretrieved": lines(r"\textbf{Reports not retrieved}", tex_count(p["not_retrieved"])),
+        "unavailable": lines(r"\textbf{Reports not retrieved}", tex_count(p["not_retrieved"])),
         "assessed": lines(r"\textbf{Reports assessed for eligibility}", tex_count(c["assessed"])),
-        "reportsexcluded": lines(*exclusions),
-        "included": lines(r"\textbf{" + latex_escape(p["included_label"]) + "}", tex_count(c["studies"])),
+        "reasons": lines(*reasons),
+        "final": lines(r"\textbf{" + latex_escape(p["included_label"]) + "}",
+                       tex_count(c["studies"])),
     }
-    for name, content in replacements.items():
-        s = populate_node(s, name, content)
-    # Original TikZ styles, colours, frame and arrow anchors remain unchanged.
-    return s
+    for name, value in changes.items():
+        source = populate_node(source, name, value)
+
+    # Retain V2's exact palette, box styles, frame and anchored arrow definitions.
+    # Make the source self-consistent: V2's example-only configuration macros
+    # are replaced with a generated comment, as actual values live in the nodes.
+    first = source.index("% ==================== CONFIGURATION")
+    last = source.index("% ================= END CONFIGURATION") 
+    last = source.index("\n", last) + 1
+    source = (source[:first] +
+              "% GENERATED FIGURE DATA — modify values using panP-Diagram.\n" +
+              "% Layout, styling and arrows below originate from V2.tex.\n" +
+              source[last:])
+
+    # V2 originally positions rows for three databases and three exclusion reasons.
+    # Give additional rows vertical space while retaining each node's design.
+    extra_ident = max(0, len(entries) - 5)
+    extra_reasons = max(0, len(reasons) - 5)
+    extra_ident_cm = extra_ident * 0.58
+    extra_reasons_cm = extra_reasons * 0.58
+    if extra_ident_cm:
+        for name, base in (("phaseScreen", -5.10), ("screen", -5.10),
+                           ("screenout", -5.10), ("sought", -7.05),
+                           ("unavailable", -7.05), ("assessed", -9.8),
+                           ("reasons", -9.8), ("phaseInclude", -13.0),
+                           ("final", -13.0)):
+            moved = base-extra_ident_cm
+            source = re.sub(
+                r"(\(" + name + r"\)\s*at\s*\([^,]+,)\s*" + re.escape(str(base)) + r"(\))",
+                lambda m: m.group(1)+f"{moved:.2f}"+m.group(2), source, count=1)
+    if extra_reasons_cm:
+        for name, base in (("phaseInclude", -13.0-extra_ident_cm),
+                           ("final", -13.0-extra_ident_cm)):
+            source = re.sub(
+                r"(\(" + name + r"\)\s*at\s*\([^,]+,)\s*" + re.escape(f"{base:.2f}" if extra_ident_cm else str(base)) + r"(\))",
+                lambda m: m.group(1)+f"{base-extra_reasons_cm:.2f}"+m.group(2), source, count=1)
+    return source
 
 @st.cache_data(show_spinner=False, max_entries=8)
 def render(tex):
@@ -196,7 +232,7 @@ if "project" not in st.session_state:
     st.session_state.project = copy.deepcopy(DEMO)
 p = st.session_state.project
 st.title("panP-Diagram")
-st.caption("Original FIGURE (1).tex design · Full editable demo · Automatic arithmetic · PDF / PNG / TikZ exports")
+st.caption("Original V2.tex design · Full editable demo · Automatic arithmetic · PDF / PNG / TikZ exports")
 
 with st.sidebar:
     st.subheader("Project")
@@ -246,7 +282,7 @@ with controls:
         p["included_label"] = st.text_input("Included label", p["included_label"])
 
 with preview:
-    st.subheader("Original LaTeX figure · Live preview")
+    st.subheader("V2 LaTeX figure · Live preview")
     counts = calculate(p)
     for col, (name, value) in zip(st.columns(4), (
             ("Identified", counts["identified"]), ("Screened", counts["screened"]),
@@ -270,6 +306,6 @@ with preview:
                               use_container_width=True)
         except (RuntimeError, subprocess.TimeoutExpired, FileNotFoundError) as e:
             st.error(f"LaTeX renderer unavailable: {e}")
-        st.download_button("Download original-style TikZ (.tex)", source.encode("utf-8"),
+        st.download_button("Download V2 TikZ (.tex)", source.encode("utf-8"),
                            "panP_Diagram.tex", "text/plain", use_container_width=True)
     st.caption("Illustrative demonstration counts, not published study findings.")
