@@ -343,16 +343,6 @@ with controls:
                 "Distinct included studies", min_value=0, value=int(p["study_count"])))
         p["included_label"] = st.text_input("Included label", p["included_label"])
 
-    # All following values are outputs, not fields that users must calculate.
-    live = calculate(p)
-    st.markdown("#### Automatically calculated totals")
-    st.write(f"Records identified: **{live['identified']}**")
-    st.write(f"Removed before screening: **{live['removed']}**")
-    st.write(f"Records screened: **{live['screened']}**")
-    st.write(f"Reports sought: **{live['sought']}**")
-    st.write(f"Reports assessed: **{live['assessed']}**")
-    st.write(f"Included reports: **{live['reports']}**")
-    st.write(f"Included studies: **{live['studies']}**")
 
 with preview:
     st.subheader("Figure preview")
