@@ -127,6 +127,32 @@ def build_tex(p, c):
     # Preserve the exact V2 arrangement and original coordinates for the
     # default dataset. Expand the overall figure vertically only as entries
     # increase. No changes to box styles, colour intensity, or arrow styles.
+    # Anchor expanding text boxes at their top edges so extra rows extend DOWN,
+    # never upward into the title or previous stages.
+    for node, top_y in (("records", -0.85), ("preremoved", -0.85)):
+        pat = (r"(\\node\\[)([^\\]]+)(\\]\\s*\\(" + node +
+               r"\\)\\s*at\\s*)\\([^\\n]*?\\)")
+        source, changed = re.subn(
+            pat,
+            lambda m: m.group(1) + m.group(2) + ",anchor=north" +
+                      m.group(3) + "(" + ("1.15" if node == "records" else "8.1") +
+                      f",{top_y:.2f})",
+            source, count=1,
+        )
+        if changed != 1:
+            raise ValueError(f"Could not anchor identification box: {node}")
+
+    # Eligibility reasons grow downwards too; retain original column position.
+    reason_top = -8.95
+    pat = r"(\\node\\[)([^\\]]+)(\\]\\s*\\(reasons\\)\\s*at\\s*)\\([^\\n]*?\\)"
+    source, changed = re.subn(
+        pat, lambda m: m.group(1) + m.group(2) + ",anchor=north" +
+                       m.group(3) + f"(8.1,{reason_top - (0.58 * max(0, len(entries) - 5)):.2f})",
+        source, count=1,
+    )
+    if changed != 1:
+        raise ValueError("Could not anchor eligibility reasons")
+
     additional_sources = max(0, len(entries) - 5)
     additional_reasons = max(0, len(reasons) - 5)
     source_shift = 0.58 * additional_sources
