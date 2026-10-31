@@ -1,0 +1,135 @@
+% PRISMA 2020-style full demonstration template
+% Edit only the data and labels in the CONFIGURATION section.
+% All example numbers are illustrative, not findings from a real review.
+\documentclass[border=4pt]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,calc,positioning,fit}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+
+% ==================== CONFIGURATION ====================
+% Search sources (change counts and database names here)
+\newcommand{\SourceOne}{Scopus}
+\newcommand{\SourceTwo}{PubMed}
+\newcommand{\SourceThree}{Web of Science}
+\def\NSourceOne{142}
+\def\NSourceTwo{38}
+\def\NSourceThree{20}
+
+% Records removed before screening
+\def\NDuplicates{12}
+\def\NAutomation{3}
+\def\NOtherRemoved{5}
+
+% Screening exclusions and unavailable full texts
+\def\NScreenExcluded{150}
+\def\NNotRetrieved{2}
+
+% Report-level exclusion reasons (edit descriptions and counts)
+\newcommand{\ReasonOne}{Ineligible study design}
+\newcommand{\ReasonTwo}{Ineligible outcomes}
+\newcommand{\ReasonThree}{Insufficient relevant data}
+\def\NReasonOne{4}
+\def\NReasonTwo{3}
+\def\NReasonThree{1}
+
+% Calculated totals: no manual recounting required
+\pgfmathtruncatemacro{\NIdentified}{\NSourceOne+\NSourceTwo+\NSourceThree}
+\pgfmathtruncatemacro{\NRemoved}{\NDuplicates+\NAutomation+\NOtherRemoved}
+\pgfmathtruncatemacro{\NScreened}{\NIdentified-\NRemoved}
+\pgfmathtruncatemacro{\NSought}{\NScreened-\NScreenExcluded}
+\pgfmathtruncatemacro{\NAssessed}{\NSought-\NNotRetrieved}
+\pgfmathtruncatemacro{\NReportsExcluded}{\NReasonOne+\NReasonTwo+\NReasonThree}
+\pgfmathtruncatemacro{\NIncluded}{\NAssessed-\NReportsExcluded}
+
+% Independent review/study counts may differ in real searches where
+% multiple reports correspond to one study. Adapt labels accordingly.
+\newcommand{\IncludedLabel}{Studies included in review}
+
+% Theme
+\definecolor{prismNavy}{HTML}{174A7E}
+\definecolor{prismInk}{HTML}{202B36}
+\definecolor{prismTeal}{HTML}{007C83}
+\definecolor{prismOrange}{HTML}{B85C00}
+\definecolor{prismOrangeLight}{HTML}{FFF0D9}
+\definecolor{prismGreen}{HTML}{287A3D}
+\definecolor{prismGreenLight}{HTML}{E1F2E5}
+
+% ================= END CONFIGURATION ===================
+
+\begin{document}
+\tcbox[colback=white,colframe=prismNavy,arc=4pt,boxrule=1.2pt,
+  boxsep=2pt,left=2pt,right=2pt,top=2pt,bottom=2pt]{%
+\begin{tikzpicture}[
+    font=\sffamily\normalsize,
+    text=prismInk,
+    basic/.style={rectangle,draw=prismNavy,very thick,rounded corners=3pt,
+      align=left,text width=5.20cm,minimum height=1.20cm,inner sep=7pt,fill=white},
+    exclusion/.style={basic,draw=prismOrange,fill=prismOrangeLight},
+    outcome/.style={basic,draw=prismGreen,fill=prismGreenLight},
+    phase/.style={rectangle,draw=prismTeal,fill=prismTeal,text=white,
+      very thick,rounded corners=3pt,align=center,text width=2.4cm,
+      minimum height=0.88cm,inner sep=5pt,font=\sffamily\bfseries},
+    headline/.style={rectangle,draw=prismNavy,fill=prismNavy,text=white,
+      very thick,rounded corners=3pt,align=center,text width=12.0cm,
+      minimum height=0.75cm,inner sep=7pt,font=\sffamily\bfseries\large},
+    link/.style={-{Latex[length=2.5mm]},line width=1.4pt,draw=prismNavy,
+      shorten >=0pt,shorten <=0pt}
+]
+% Header, phase labels and two-column PRISMA flow
+\node[headline] (heading) at (3.53,0.65)
+ {Identification of studies via databases and registers};
+\node[phase] (phaseID) at (-3.35,-1.65) {Identification};
+\node[basic] (records) at (1.15,-1.65)
+ {\textbf{Records identified from:}\\
+ \SourceOne\ ($n=\NSourceOne$)\\
+ \SourceTwo\ ($n=\NSourceTwo$)\\
+ \SourceThree\ ($n=\NSourceThree$)\\
+ \textbf{Total ($n=\NIdentified$)}};
+\node[exclusion] (preremoved) at (8.1,-1.65)
+ {\textbf{Records removed before\\screening:}\\
+ Duplicate records ($n=\NDuplicates$)\\
+ Automation exclusions ($n=\NAutomation$)\\
+ Other reasons ($n=\NOtherRemoved$)\\
+ \textbf{Total ($n=\NRemoved$)}};
+
+\node[phase] (phaseScreen) at (-3.35,-5.10) {Screening};
+\node[basic] (screen) at (1.15,-5.10)
+ {\textbf{Records screened}\\($n=\NScreened$)};
+\node[exclusion] (screenout) at (8.1,-5.10)
+ {\textbf{Records excluded}\\($n=\NScreenExcluded$)};
+
+\node[basic] (sought) at (1.15,-7.05)
+ {\textbf{Reports sought for retrieval}\\($n=\NSought$)};
+\node[exclusion] (unavailable) at (8.1,-7.05)
+ {\textbf{Reports not retrieved}\\($n=\NNotRetrieved$)};
+
+\node[basic] (assessed) at (1.15,-9.8)
+ {\textbf{Reports assessed for eligibility}\\($n=\NAssessed$)};
+\node[exclusion] (reasons) at (8.1,-9.8)
+ {\textbf{Reports excluded:\\(with reasons):}\\
+ \ReasonOne\ ($n=\NReasonOne$)\\
+ \ReasonTwo\ ($n=\NReasonTwo$)\\
+ \ReasonThree\ ($n=\NReasonThree$)\\
+ \textbf{Total ($n=\NReportsExcluded$)}};
+
+\node[phase] (phaseInclude) at (-3.35,-13.0) {Included};
+\node[outcome] (final) at (1.15,-13.0)
+ {\textbf{\IncludedLabel}\\($n=\NIncluded$)};
+
+% Draw after nodes, with exact boundaries rather than fixed coordinates
+\draw[link] (records.east) -- (preremoved.west);
+\draw[link] (records.south) -- (screen.north);
+\draw[link] (screen.east) -- (screenout.west);
+\draw[link] (screen.south) -- (sought.north);
+\draw[link] (sought.east) -- (unavailable.west);
+\draw[link] (sought.south) -- (assessed.north);
+\draw[link] (assessed.east) -- (reasons.west);
+\draw[link] (assessed.south) -- (final.north);
+
+% Outer frame is supplied by the original navy tcolorbox above.
+\end{tikzpicture}%
+}%
+\end{document}
