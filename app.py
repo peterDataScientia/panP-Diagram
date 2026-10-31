@@ -127,31 +127,21 @@ def build_tex(p, c):
     # Preserve the exact V2 arrangement and original coordinates for the
     # default dataset. Expand the overall figure vertically only as entries
     # increase. No changes to box styles, colour intensity, or arrow styles.
-    # Anchor expanding text boxes at their top edges so extra rows extend DOWN,
-    # never upward into the title or previous stages.
-    for node, top_y in (("records", -0.85), ("preremoved", -0.85)):
-        pat = (r"(\\node\\[)([^\\]]+)(\\]\\s*\\(" + node +
-               r"\\)\\s*at\\s*)\\([^\\n]*?\\)")
-        source, changed = re.subn(
-            pat,
-            lambda m: m.group(1) + m.group(2) + ",anchor=north" +
-                      m.group(3) + "(" + ("1.15" if node == "records" else "8.1") +
-                      f",{top_y:.2f})",
-            source, count=1,
-        )
-        if changed != 1:
-            raise ValueError(f"Could not anchor identification box: {node}")
+    # Extend the identification and eligibility boxes downward only.
+    # Match the actual literal node declarations in V2.tex.
+    for node, x in (("records", "1.15"), ("preremoved", "8.1")):
+        old = r"\\node[" + ("basic" if node == "records" else "exclusion") + r"] (" + node + r") at (" + x + ",-1.65)"
+        new = r"\\node[" + ("basic" if node == "records" else "exclusion") + r",anchor=north] (" + node + r") at (" + x + ",-0.85)"
+        if old not in source:
+            raise ValueError(f"Missing expected figure node: {node}")
+        source = source.replace(old, new, 1)
 
-    # Eligibility reasons grow downwards too; retain original column position.
-    reason_top = -8.95
-    pat = r"(\\node\\[)([^\\]]+)(\\]\\s*\\(reasons\\)\\s*at\\s*)\\([^\\n]*?\\)"
-    source, changed = re.subn(
-        pat, lambda m: m.group(1) + m.group(2) + ",anchor=north" +
-                       m.group(3) + f"(8.1,{reason_top - (0.58 * max(0, len(entries) - 5)):.2f})",
-        source, count=1,
-    )
-    if changed != 1:
-        raise ValueError("Could not anchor eligibility reasons")
+    # Anchor eligibility exclusion box at its top without altering its style.
+    old = r"\\node[exclusion] (reasons) at (8.1,-9.8)"
+    new = r"\\node[exclusion,anchor=north] (reasons) at (8.1,-8.95)"
+    if old not in source:
+        raise ValueError("Missing expected figure node: reasons")
+    source = source.replace(old, new, 1)
 
     additional_sources = max(0, len(entries) - 5)
     additional_reasons = max(0, len(reasons) - 5)
@@ -164,10 +154,16 @@ def build_tex(p, c):
         "sought": -7.05 - source_shift,
         "unavailable": -7.05 - source_shift,
         "assessed": -9.80 - source_shift,
-        "reasons": -9.80 - source_shift,
+
         "phaseInclude": -13.0 - source_shift - reason_shift,
         "final": -13.0 - source_shift - reason_shift,
     }
+    source = source.replace(
+        r"\\node[exclusion,anchor=north] (reasons) at (8.1,-8.95)",
+        r"\\node[exclusion,anchor=north] (reasons) at (8.1," +
+        f"{-8.95 - source_shift:.2f})",
+        1,
+    )
     for name, y in y_positions.items():
         pat = (r"(\\node\[[^\]]+\]\s*\(" + re.escape(name) +
                r"\)\s*at\s*\(\s*([^,]+),\s*)(-?\d+(?:\.\d+)?)(\s*\))")
