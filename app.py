@@ -8,6 +8,9 @@ import tempfile
 from pathlib import Path
 
 import streamlit as st
+from PIL import Image
+
+LOGO_PATH = Path(__file__).parent / "assets" / "panp_logo.png"
 
 ORIGINAL = Path(__file__).with_name("V2.tex").read_text(encoding="utf-8")
 DEMO = {
@@ -283,11 +286,15 @@ def editor(p, key, title):
             p[key].append({"name": "New exclusion reason", "n": 0})
             st.rerun()
 
-st.set_page_config(page_title="panP-Diagram", layout="wide", page_icon="🔬")
+st.set_page_config(
+    page_title="panP-Diagram",
+    layout="wide",
+    page_icon=Image.open(LOGO_PATH).convert("RGBA").crop((0, 0, 116, 107)),
+)
 if "project" not in st.session_state:
     st.session_state.project = copy.deepcopy(DEMO)
 p = st.session_state.project
-st.title("panP-Diagram")
+st.image(str(LOGO_PATH), width=360)
 st.caption("Create and export PRISMA flow diagrams")
 
 with st.sidebar:
